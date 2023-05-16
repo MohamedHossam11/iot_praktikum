@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-#define SIZE 100
+#define SIZE 1000
 struct BarrierEvent
 {
     int timestamp;
@@ -13,6 +13,7 @@ struct BarrierEvent
 struct BarrierEvent inp_arr[SIZE];
 void enqueue(struct BarrierEvent);
 struct BarrierEvent dequeue();
+struct BarrierEvent top();
 void show();
 
 int Rear = -1;
@@ -20,6 +21,7 @@ int Front = -1;
 
 void enqueue(struct BarrierEvent barrierEvent)
 {
+    printf("Here in enqueue \n");
     if (Rear == SIZE - 1)
         printf("Overflow \n");
     else
@@ -41,10 +43,14 @@ struct BarrierEvent dequeue()
     else
     {
         struct BarrierEvent item = inp_arr[Front];
-        // printf("Element deleted from the Queue: %d\n", item);
         Front = Front + 1;
         return item;
     }
+}
+
+struct BarrierEvent top()
+{
+    return inp_arr[Front];
 }
 
 void show()
