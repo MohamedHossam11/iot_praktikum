@@ -15,21 +15,26 @@
 #define INPUT_PIN_2 5
 
 static const char *TAG = "BLINK";
-volatile uint8_t count = 0;
+volatile uint8_t count = 100;
+volatile uint8_t countB1 = 0;
+volatile uint8_t countB2 = 0;
 volatile unsigned int lastDebounceTimeInput1 = 0;
 volatile unsigned int lastDebounceTimeInput2 = 0;
-volatile unsigned int debounceDelay = 250;
+volatile unsigned int debounceDelay = 50;
 volatile bool currentStateInput1 = false;
 volatile bool previousStateInput1 = false;
 volatile bool currentStateInput2 = false;
 volatile bool previousStateInput2 = false;
 
-xQueueHandle interputQueue;
+xQueueHandle interputQueue1;
+xQueueHandle interputQueue2;
 bool flag1 = false;
 bool flag2 = false;
 
 static void IRAM_ATTR gpio_interrupt_handler_Input1(void *args)
 {
+	// struct BarrierEvent e;
+	int barrierId = 0;
 	currentStateInput1 = gpio_get_level(INPUT_PIN_1);
 	int pinNumber = (int)args;
 	if (currentStateInput1 != previousStateInput1)
@@ -38,12 +43,18 @@ static void IRAM_ATTR gpio_interrupt_handler_Input1(void *args)
 	}
 	if ((millis() - lastDebounceTimeInput1) > debounceDelay)
 	{
-		xQueueSendFromISR(interputQueue, &pinNumber, NULL);
+		// e.barrierID = 1;
+		// e.on = currentStateInput1;
+		// e.timestamp = millis();
+		barrierId = 1;
+		xQueueSendFromISR(interputQueue1, &barrierId, NULL);
 	}
 }
 
 static void IRAM_ATTR gpio_interrupt_handler_Input2(void *args)
 {
+	// struct BarrierEvent e;
+	int barrierId = 0;
 	int pinNumber = (int)args;
 	currentStateInput2 = gpio_get_level(INPUT_PIN_2);
 	if (currentStateInput2 != previousStateInput2)
@@ -52,7 +63,11 @@ static void IRAM_ATTR gpio_interrupt_handler_Input2(void *args)
 	}
 	if ((millis() - lastDebounceTimeInput2) > debounceDelay)
 	{
-		xQueueSendFromISR(interputQueue, &pinNumber, NULL);
+		// e.barrierID = 2;
+		// e.on = currentStateInput2;
+		// e.timestamp = millis();
+		barrierId = 2;
+		xQueueSendFromISR(interputQueue1, &barrierId, NULL);
 	}
 }
 
@@ -63,63 +78,51 @@ void showRoomState()
 	{
 		itoa(count, number, 10);
 		ssd1306_printFixed(0, 8, number, STYLE_NORMAL);
-		vTaskDelay(5000 / portTICK_PERIOD_MS);
-	}
-}
-
-void analyse()
-{
-	while (1)
-	{
-		struct BarrierEvent front = dequeue();
-		struct BarrierEvent front2 = top();
-		if (front.barrierID == 1 && front2.barrierID == 2)
-		{
-			count++;
-			dequeue();
-		}
-		else if (front.barrierID == 1 && front2.barrierID == 1)
-		{
-			continue;
-		}
-		else if (front.barrierID == 2 && front2.barrierID == 1)
-		{
-			count--;
-			dequeue();
-		}
-		else if (front.barrierID == 2 && front2.barrierID == 2)
-		{
-			continue;
-		}
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
 }
 
 void bufferEvents()
 {
-	int pinNumber = 0;
+	int barrierId = 0;
 	while (1)
 	{
-		if (xQueuePeekFromISR(interputQueue, &pinNumber) == pdFALSE)
+		if (xQueueReceive(interputQueue1, &barrierId, 0))
 		{
-			continue;
+			if (barrierId == 1)
+			{
+				if (xQueueReceive(interputQueue1, &barrierId, 500))
+				{
+					if (barrierId == 2)
+						count++;
+				}
+			}
+			if (barrierId == 2)
+			{
+				if (xQueueReceive(interputQueue1, &barrierId, 500))
+				{
+					if (barrierId == 1)
+						count--;
+				}
+			}
+			// if (barrierId == 2)
+			// {
+			// 	countB2++;
+			// }
+			// if(xQueueReceiveFromISR(interputQueue1, &e1, NULL) == pdTRUE && xQueueReceiveFromISR(interputQueue1, &e2, NULL) == pdTRUE) {
+			// 	count++;
+			// }
+
+			// else if (e1.barrierID == 0)
+			// {
+			// 	xQueueSendFromISR(interputQueue1, &e2, NULL);
+			// }
+			// else if (e2.barrierID == 0)
+			// {
+			// 	xQueueSendFromISR(interputQueue1, &e1, NULL);
+			// }
+			vTaskDelay(1000 / portTICK_PERIOD_MS);
 		}
-		struct BarrierEvent barrierEventDequeued;
-		struct BarrierEvent barrierEventPeek;
-		if (xQueueReceiveFromISR(interputQueue, &pinNumber, NULL))
-		{
-			barrierEventDequeued.barrierID = pinNumber == INPUT_PIN_1 ? 1 : 2;
-			barrierEventDequeued.on = gpio_get_level(pinNumber);
-			barrierEventDequeued.timestamp = millis();
-		}
-		if (xQueuePeekFromISR(interputQueue, &pinNumber))
-		{
-			barrierEventPeek.barrierID = pinNumber == INPUT_PIN_1 ? 1 : 2;
-			barrierEventPeek.on = gpio_get_level(pinNumber);
-			barrierEventPeek.timestamp = millis();
-		}
-		// if (barrierEventDequeued.barrierID == INPUT_PIN_1 && barrierEventPeek)
-		// {
-		// }
 	}
 }
 
@@ -170,7 +173,8 @@ void app_main()
 	// 			NULL,
 	// 			8,
 	// 			NULL);
-	interputQueue = xQueueCreate(10, sizeof(int));
+	interputQueue1 = xQueueCreate(1000, sizeof(int));
+	interputQueue2 = xQueueCreate(1000, sizeof(struct BarrierEvent *));
 	gpio_install_isr_service(0);
 	gpio_isr_handler_add(INPUT_PIN_1, gpio_interrupt_handler_Input1, (void *)INPUT_PIN_1);
 	gpio_isr_handler_add(INPUT_PIN_2, gpio_interrupt_handler_Input2, (void *)INPUT_PIN_2);

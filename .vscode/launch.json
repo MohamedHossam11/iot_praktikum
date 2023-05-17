@@ -8,6 +8,7 @@
             "name": "ESP-IDF Debug: Launch",
             "type": "espidf",
             "request": "launch",
+            "logLevel": 3
         }
     ]
 }
