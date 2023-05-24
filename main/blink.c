@@ -7,6 +7,10 @@
 #include "ssd1306.h"
 #include "esp_log.h"
 #include "queue.h"
+#include "wifi_module.h"
+#include "timeMgmt.h"
+#include "mqtt.h"
+#include "time.h"
 #include <stdlib.h>
 
 #define SDA_PIN 21
@@ -14,8 +18,8 @@
 #define INPUT_PIN_1 27
 #define INPUT_PIN_2 5
 
-static const char *TAG = "BLINK";
-volatile uint8_t count = 100;
+volatile uint8_t count = 99;
+volatile uint8_t prediction = 99;
 volatile uint8_t countB1 = 0;
 volatile uint8_t countB2 = 0;
 volatile unsigned int lastDebounceTimeInput1 = 0;
@@ -71,13 +75,36 @@ static void IRAM_ATTR gpio_interrupt_handler_Input2(void *args)
 	}
 }
 
+int64_t get_timestamp(void)
+{
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return (tv.tv_sec) * 1000LL + (tv.tv_usec / 1000LL);
+}
+
 void showRoomState()
 {
+	ssd1306_clearScreen();
 	char number[33];
+	char prediction_number[33];
+	char clock[64];
+	struct tm timeinfo;
+	time_t now;
 	while (1)
 	{
+		ssd1306_setFixedFont(ssd1306xled_font8x16);
+		ssd1306_printFixed(0, 0, "G10", STYLE_NORMAL);
+		ssd1306_setFixedFont(comic_sans_font24x32_123);
 		itoa(count, number, 10);
-		ssd1306_printFixed(0, 8, number, STYLE_NORMAL);
+		ssd1306_printFixed(0, 30, number, STYLE_NORMAL);
+		time(&now);
+		localtime_r(&now, &timeinfo);
+		sprintf(clock, "%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
+		ssd1306_setFixedFont(ssd1306xled_font8x16);
+		ssd1306_printFixed(70, 0, clock, STYLE_NORMAL);
+		ssd1306_setFixedFont(comic_sans_font24x32_123);
+		itoa(prediction, prediction_number, 10);
+		ssd1306_printFixed(70, 30, prediction_number, STYLE_NORMAL);
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
 }
@@ -105,24 +132,25 @@ void bufferEvents()
 						count--;
 				}
 			}
-			// if (barrierId == 2)
-			// {
-			// 	countB2++;
-			// }
-			// if(xQueueReceiveFromISR(interputQueue1, &e1, NULL) == pdTRUE && xQueueReceiveFromISR(interputQueue1, &e2, NULL) == pdTRUE) {
-			// 	count++;
-			// }
-
-			// else if (e1.barrierID == 0)
-			// {
-			// 	xQueueSendFromISR(interputQueue1, &e2, NULL);
-			// }
-			// else if (e2.barrierID == 0)
-			// {
-			// 	xQueueSendFromISR(interputQueue1, &e1, NULL);
-			// }
 			vTaskDelay(1000 / portTICK_PERIOD_MS);
 		}
+	}
+}
+
+void publisherTask()
+{
+	while (1)
+	{
+		char msg[256];
+		int qos_test = 1;
+		sprintf(msg, "{\"sensors\":[{\"name\": \"%s\", \"values\": [{\"timestamp\": %lld, \"count\": %d }]}]}", "group10 sensor", get_timestamp(), count);
+		ESP_LOGI("MQTT_SEND", "Topic %s: %s\n", TOPIC, msg);
+		int msg_id = esp_mqtt_client_publish(mqttClient, TOPIC, msg, strlen(msg), qos_test, 0);
+		if (msg_id == -1)
+		{
+			ESP_LOGE(TAG, "msg_id returned by publish is -1!\n");
+		}
+		vTaskDelay(5000 / portTICK_PERIOD_MS);
 	}
 }
 
@@ -151,13 +179,30 @@ void app_main()
 
 	ssd1306_init();
 	ssd1306_displayOn();
-	ssd1306_setFixedFont(ssd1306xled_font8x16);
-	ssd1306_clearScreen();
+
+	esp_err_t ret = nvs_flash_init();
+	if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+	{
+		ESP_ERROR_CHECK(nvs_flash_erase());
+		ret = nvs_flash_init();
+	}
+	ESP_ERROR_CHECK(ret);
+
+	ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
+	wifi_init_sta();
+	initSNTP();
+	initMQTT();
 
 	xTaskCreate(showRoomState,
 				"showRoomState",
 				4096,
 				NULL,
+				5,
+				NULL);
+	xTaskCreate(publisherTask,
+				"publisherTask",
+				4096,
+				count,
 				5,
 				NULL);
 	xTaskCreatePinnedToCore(bufferEvents,
@@ -167,12 +212,7 @@ void app_main()
 							2,
 							NULL,
 							1);
-	// xTaskCreate(analyse,
-	// 			"analyse",
-	// 			4096,
-	// 			NULL,
-	// 			8,
-	// 			NULL);
+
 	interputQueue1 = xQueueCreate(1000, sizeof(int));
 	interputQueue2 = xQueueCreate(1000, sizeof(struct BarrierEvent *));
 	gpio_install_isr_service(0);
