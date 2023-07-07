@@ -6,8 +6,8 @@
 #include "lwip/sys.h"
 #include "esp_log.h"
 
-#define ESP_WIFI_SSID "iPhone (2)"
-#define ESP_WIFI_PASS "m12345678"
+#define ESP_WIFI_SSID "CAPS-Seminar-Room"
+#define ESP_WIFI_PASS "caps-schulz-seminar-room-wifi"
 #define ESP_MAXIMUM_RETRY 50
 
 // #if CONFIG_ESP_WIFI_AUTH_OPEN

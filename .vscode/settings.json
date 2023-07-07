@@ -17,7 +17,9 @@
         "queue.h": "c",
         "stdio.h": "c",
         "*.tcc": "c",
-        "task.h": "c"
+        "task.h": "c",
+        "rtc_store.h": "c",
+        "http_parser.h": "c"
     },
     
     // The following items should be replaced throughout this file 

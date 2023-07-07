@@ -1,5 +1,5 @@
-2023-05-17 16:43:51,885 - Debug Adapter (main) - INFO - Working directory: /
-2023-05-17 16:43:51,885 - Debug Adapter (main) - INFO - Arguments: 
+2023-05-26 18:46:00,287 - Debug Adapter (main) - INFO - Working directory: /
+2023-05-26 18:46:00,287 - Debug Adapter (main) - INFO - Arguments: 
 {   'app_flash_off': 65536,
     'board_type': None,
     'cmdfile': None,
@@ -20,227 +20,31 @@
     'postmortem': False,
     'tmo_scale_factor': 1,
     'toolchain_prefix': 'xtensa-esp32-elf-'}
-2023-05-17 16:43:51,885 - Debug Adapter (main) - CRITICAL - Debug adapter -> Extension: DEBUG_ADAPTER_STARTED
-2023-05-17 16:43:51,885 - Debug Adapter (main) - INFO - Starting. Cmd: /Users/mohamedhossam/.vscode/extensions/espressif.esp-idf-extension-1.6.2/esp_debug_adapter/debug_adapter_main.py -d 3 -e /Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/build/blink.elf -l /Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/debug.log -p 43474 -dn esp32 -a 0x10000 -t xtensa-esp32-elf-
+2023-05-26 18:46:00,287 - Debug Adapter (main) - CRITICAL - Debug adapter -> Extension: DEBUG_ADAPTER_STARTED
+2023-05-26 18:46:00,287 - Debug Adapter (main) - INFO - Starting. Cmd: /Users/mohamedhossam/.vscode/extensions/espressif.esp-idf-extension-1.6.2/esp_debug_adapter/debug_adapter_main.py -d 3 -e /Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/build/blink.elf -l /Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/debug.log -p 43474 -dn esp32 -a 0x10000 -t xtensa-esp32-elf-
 
-2023-05-17 16:43:51,890 - Debug Adapter (main) - INFO - Listening on port 43474
-2023-05-17 16:43:51,890 - Debug Adapter (main) - CRITICAL - Debug adapter -> Extension: DEBUG_ADAPTER_READY2CONNECT
-2023-05-17 16:43:52,497 - Gdb - INFO - NOTIFY: thread-group-added {'id': 'i1'}
-2023-05-17 16:43:52,916 - Gdb - INFO - NOTIFY: thread-group-started {'id': 'i1', 'pid': '42000'}
-2023-05-17 16:43:52,916 - Gdb - INFO - NOTIFY: thread-created {'group-id': 'i1', 'id': '1'}
-2023-05-17 16:43:52,916 - Gdb - INFO - CONS: ('0x400e78e2 in esp_pm_impl_waiti () at '
- '/Users/mohamedhossam/esp/esp-idf/components/esp_pm/pm_impl.c:839\\n')
-2023-05-17 16:43:52,916 - Gdb - INFO - CONS: '839\\t}\\n'
-2023-05-17 16:43:52,917 - Gdb - INFO - NOTIFY: stopped {'frame': {'addr': '0x400e78e2',
-           'arch': 'xtensa',
-           'args': [],
-           'file': '/Users/mohamedhossam/esp/esp-idf/components/esp_pm/pm_impl.c',
-           'fullname': '/Users/mohamedhossam/esp/esp-idf/components/esp_pm/pm_impl.c',
-           'func': 'esp_pm_impl_waiti',
-           'line': '839'},
- 'stopped-threads': 'all',
- 'thread-id': '1'}
-2023-05-17 16:43:53,088 - Gdb - INFO - CONS: '[default ESP gdbinit file]'
-2023-05-17 16:43:53,088 - Gdb - INFO - NOTIFY: cmd-param-changed {'param': 'remotetimeout', 'value': '3'}
-2023-05-17 16:43:53,088 - Gdb - INFO - NOTIFY: cmd-param-changed {'param': 'remote hardware-watchpoint-limit', 'value': '2'}
-2023-05-17 16:43:53,088 - Gdb - INFO - CONS: ("Warning: 'flushregs', an alias for the command 'maintenance flush "
- "register-cache', is deprecated.\\n")
-2023-05-17 16:43:53,088 - Gdb - INFO - CONS: "Use 'maintenance flush register-cache'.\\n\\n"
-2023-05-17 16:43:53,945 - Gdb - INFO - NOTIFY: thread-exited {'group-id': 'i1', 'id': '1'}
-2023-05-17 16:43:53,945 - Gdb - INFO - NOTIFY: thread-group-exited {'id': 'i1'}
-2023-05-17 16:43:53,958 - Gdb - INFO - NOTIFY: thread-group-started {'id': 'i1', 'pid': '42000'}
-2023-05-17 16:43:53,959 - Gdb - INFO - NOTIFY: thread-created {'group-id': 'i1', 'id': '1'}
-2023-05-17 16:43:53,959 - Gdb - INFO - CONS: '0x40000400 in ?? ()\\n'
-2023-05-17 16:43:53,959 - Gdb - INFO - NOTIFY: stopped {'frame': {'addr': '0x40000400', 'arch': 'xtensa', 'args': [], 'func': '??'},
- 'stopped-threads': 'all',
- 'thread-id': '1'}
-2023-05-17 16:43:53,969 - Gdb - INFO - CONS: 'Note: automatically using hardware breakpoints for read-only addresses.\\n'
-2023-05-17 16:43:54,476 - Gdb - INFO - NOTIFY: running {'thread-id': 'all'}
-2023-05-17 16:43:54,983 - Gdb - INFO - NOTIFY: thread-created {'group-id': 'i1', 'id': '2'}
-2023-05-17 16:43:54,983 - Gdb - INFO - CONS: '[New Thread 1073413672]\\n'
-2023-05-17 16:43:54,984 - Gdb - INFO - NOTIFY: breakpoint-modified {'bkpt': {'addr': '0x400d4f20',
-          'disp': 'del',
-          'enabled': 'y',
-          'file': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-          'fullname': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-          'func': 'app_main',
-          'line': '116',
-          'number': '1',
-          'original-location': 'app_main',
-          'thread-groups': ['i1'],
-          'times': '1',
-          'type': 'breakpoint'}}
-2023-05-17 16:43:54,984 - Gdb - INFO - NOTIFY: thread-exited {'group-id': 'i1', 'id': '1'}
-2023-05-17 16:43:54,984 - Gdb - INFO - NOTIFY: thread-created {'group-id': 'i1', 'id': '3'}
-2023-05-17 16:43:54,984 - Gdb - INFO - CONS: '[New Thread 1073439500]\\n'
-2023-05-17 16:43:54,984 - Gdb - INFO - NOTIFY: thread-created {'group-id': 'i1', 'id': '4'}
-2023-05-17 16:43:54,984 - Gdb - INFO - CONS: '[New Thread 1073437612]\\n'
-2023-05-17 16:43:54,985 - Gdb - INFO - NOTIFY: thread-created {'group-id': 'i1', 'id': '5'}
-2023-05-17 16:43:54,985 - Gdb - INFO - CONS: '[New Thread 1073412912]\\n'
-2023-05-17 16:43:54,985 - Gdb - INFO - NOTIFY: thread-created {'group-id': 'i1', 'id': '6'}
-2023-05-17 16:43:54,985 - Gdb - INFO - CONS: '[New Thread 1073413260]\\n'
-2023-05-17 16:43:54,985 - Gdb - INFO - NOTIFY: thread-created {'group-id': 'i1', 'id': '7'}
-2023-05-17 16:43:54,985 - Gdb - INFO - CONS: '[New Thread 1073411272]\\n'
-2023-05-17 16:43:54,986 - Gdb - INFO - CONS: '[Switching to Thread 1073413672]\\n'
-2023-05-17 16:43:54,986 - Gdb - INFO - CONS: '\\n'
-2023-05-17 16:43:54,986 - Gdb - INFO - CONS: ('Thread 2 \\"main\\" hit Temporary breakpoint 1, app_main () at '
- '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c:116\\n')
-2023-05-17 16:43:54,986 - Gdb - INFO - CONS: '116\\t{\\n'
-2023-05-17 16:43:54,986 - Gdb - INFO - NOTIFY: stopped {'bkptno': '1',
- 'disp': 'del',
- 'frame': {'addr': '0x400d4f20',
-           'arch': 'xtensa',
-           'args': [],
-           'file': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-           'fullname': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-           'func': 'app_main',
-           'line': '116'},
- 'reason': 'breakpoint-hit',
- 'stopped-threads': 'all',
- 'thread-id': '2'}
-2023-05-17 16:43:55,078 - Gdb - INFO - NOTIFY: breakpoint-deleted {'id': '1'}
-2023-05-17 16:44:00,886 - Gdb - INFO - NOTIFY: running {'thread-id': 'all'}
-2023-05-17 16:44:21,370 - Gdb - INFO - NOTIFY: breakpoint-modified {'bkpt': {'addr': '0x40082eb9',
-          'disp': 'keep',
-          'enabled': 'y',
-          'file': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-          'fullname': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-          'func': 'gpio_interrupt_handler_Input2',
-          'line': '66',
-          'number': '2',
-          'original-location': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c:66',
-          'thread-groups': ['i1'],
-          'times': '1',
-          'type': 'breakpoint'}}
-2023-05-17 16:44:21,371 - Gdb - INFO - NOTIFY: thread-exited {'group-id': 'i1', 'id': '2'}
-2023-05-17 16:44:21,371 - Gdb - INFO - NOTIFY: thread-created {'group-id': 'i1', 'id': '8'}
-2023-05-17 16:44:21,371 - Gdb - INFO - CONS: '[New Thread 1073449012]\\n'
-2023-05-17 16:44:21,371 - Gdb - INFO - NOTIFY: thread-created {'group-id': 'i1', 'id': '9'}
-2023-05-17 16:44:21,371 - Gdb - INFO - CONS: '[New Thread 1073444564]\\n'
-2023-05-17 16:44:21,371 - Gdb - INFO - CONS: '[Switching to Thread 1073437612]\\n'
-2023-05-17 16:44:21,372 - Gdb - INFO - CONS: '\\n'
-2023-05-17 16:44:21,372 - Gdb - INFO - CONS: ('Thread 4 \\"IDLE\\" hit Breakpoint 2, gpio_interrupt_handler_Input2 '
- '(args=0x5) at '
- '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c:66\\n')
-2023-05-17 16:44:21,372 - Gdb - INFO - CONS: '66\\t\\t\\te.timestamp = millis();\\n'
-2023-05-17 16:44:21,372 - Gdb - INFO - NOTIFY: stopped {'bkptno': '2',
- 'disp': 'keep',
- 'frame': {'addr': '0x40082eb9',
-           'arch': 'xtensa',
-           'args': [{'name': 'args', 'value': '0x5'}],
-           'file': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-           'fullname': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-           'func': 'gpio_interrupt_handler_Input2',
-           'line': '66'},
- 'reason': 'breakpoint-hit',
- 'stopped-threads': 'all',
- 'thread-id': '4'}
-2023-05-17 16:44:31,315 - Gdb - INFO - NOTIFY: running {'thread-id': 'all'}
-2023-05-17 16:44:31,921 - Gdb - INFO - NOTIFY: breakpoint-modified {'bkpt': {'addr': '0x400d4eff',
-          'disp': 'keep',
-          'enabled': 'y',
-          'file': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-          'fullname': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-          'func': 'bufferEvents',
-          'line': '89',
-          'number': '3',
-          'original-location': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c:88',
-          'thread-groups': ['i1'],
-          'times': '1',
-          'type': 'breakpoint'}}
-2023-05-17 16:44:31,921 - Gdb - INFO - CONS: '[Switching to Thread 1073449012]\\n'
-2023-05-17 16:44:31,921 - Gdb - INFO - CONS: '\\n'
-2023-05-17 16:44:31,921 - Gdb - INFO - CONS: ('Thread 8 \\"bufferEvents\\" hit Breakpoint 3, bufferEvents () at '
- '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c:89\\n')
-2023-05-17 16:44:31,922 - Gdb - INFO - CONS: '89\\t\\t\\t\\tcount++;\\n'
-2023-05-17 16:44:31,922 - Gdb - INFO - NOTIFY: stopped {'bkptno': '3',
- 'disp': 'keep',
- 'frame': {'addr': '0x400d4eff',
-           'arch': 'xtensa',
-           'args': [],
-           'file': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-           'fullname': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-           'func': 'bufferEvents',
-           'line': '89'},
- 'reason': 'breakpoint-hit',
- 'stopped-threads': 'all',
- 'thread-id': '8'}
-2023-05-17 16:44:40,299 - Gdb - INFO - NOTIFY: running {'thread-id': 'all'}
-2023-05-17 16:44:40,806 - Gdb - INFO - NOTIFY: stopped {'frame': {'addr': '0x400d4f16',
-           'arch': 'xtensa',
-           'args': [],
-           'file': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-           'fullname': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-           'func': 'bufferEvents',
-           'line': '110'},
- 'reason': 'end-stepping-range',
- 'stopped-threads': 'all',
- 'thread-id': '8'}
-2023-05-17 16:44:40,809 - Debug Adapter (main) - WARNING - The step operation took too long - Measured 0.912214 s ( from ~ 16:44:39,895051)
-2023-05-17 16:44:42,940 - Gdb - INFO - NOTIFY: running {'thread-id': 'all'}
-2023-05-17 16:44:43,754 - Gdb - INFO - NOTIFY: stopped {'frame': {'addr': '0x400d4eef',
-           'arch': 'xtensa',
-           'args': [],
-           'file': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-           'fullname': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-           'func': 'bufferEvents',
-           'line': '87'},
- 'reason': 'end-stepping-range',
- 'stopped-threads': 'all',
- 'thread-id': '8'}
-2023-05-17 16:44:43,755 - Debug Adapter (main) - WARNING - The step operation took too long - Measured 1.325864 s ( from ~ 16:44:42,429463)
-2023-05-17 16:44:45,624 - Gdb - INFO - NOTIFY: running {'thread-id': 'all'}
-2023-05-17 16:44:46,131 - Gdb - INFO - NOTIFY: breakpoint-modified {'bkpt': {'addr': '0x400d4eff',
-          'disp': 'keep',
-          'enabled': 'y',
-          'file': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-          'fullname': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-          'func': 'bufferEvents',
-          'line': '89',
-          'number': '3',
-          'original-location': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c:88',
-          'thread-groups': ['i1'],
-          'times': '2',
-          'type': 'breakpoint'}}
-2023-05-17 16:44:46,131 - Gdb - INFO - CONS: '\\n'
-2023-05-17 16:44:46,132 - Gdb - INFO - CONS: ('Thread 8 \\"bufferEvents\\" hit Breakpoint 3, bufferEvents () at '
- '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c:89\\n')
-2023-05-17 16:44:46,132 - Gdb - INFO - CONS: '89\\t\\t\\t\\tcount++;\\n'
-2023-05-17 16:44:46,133 - Gdb - INFO - NOTIFY: stopped {'bkptno': '3',
- 'disp': 'keep',
- 'frame': {'addr': '0x400d4eff',
-           'arch': 'xtensa',
-           'args': [],
-           'file': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-           'fullname': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-           'func': 'bufferEvents',
-           'line': '89'},
- 'reason': 'breakpoint-hit',
- 'stopped-threads': 'all',
- 'thread-id': '8'}
-2023-05-17 16:44:46,133 - Debug Adapter (main) - WARNING - The step operation took too long - Measured 0.872997 s ( from ~ 16:44:45,260360)
-2023-05-17 16:44:47,548 - Gdb - INFO - NOTIFY: running {'thread-id': 'all'}
-2023-05-17 16:44:48,055 - Gdb - INFO - NOTIFY: stopped {'frame': {'addr': '0x400d4f16',
-           'arch': 'xtensa',
-           'args': [],
-           'file': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-           'fullname': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-           'func': 'bufferEvents',
-           'line': '110'},
- 'reason': 'end-stepping-range',
- 'stopped-threads': 'all',
- 'thread-id': '8'}
-2023-05-17 16:44:48,055 - Debug Adapter (main) - WARNING - The step operation took too long - Measured 0.876838 s ( from ~ 16:44:47,178905)
-2023-05-17 16:45:00,739 - Gdb - INFO - NOTIFY: running {'thread-id': 'all'}
-2023-05-17 16:45:01,531 - Gdb - INFO - NOTIFY: stopped {'frame': {'addr': '0x400d4eef',
-           'arch': 'xtensa',
-           'args': [],
-           'file': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-           'fullname': '/Users/mohamedhossam/Desktop/MohamedHossam/TUM/IoT/iot_praktikum/main/blink.c',
-           'func': 'bufferEvents',
-           'line': '87'},
- 'reason': 'end-stepping-range',
- 'stopped-threads': 'all',
- 'thread-id': '8'}
-2023-05-17 16:45:01,532 - Debug Adapter (main) - WARNING - The step operation took too long - Measured 1.303455 s ( from ~ 16:45:00,229093)
-2023-05-17 16:45:03,409 - Gdb - INFO - NOTIFY: running {'thread-id': 'all'}
+2023-05-26 18:46:00,293 - Debug Adapter (main) - INFO - Listening on port 43474
+2023-05-26 18:46:00,293 - Debug Adapter (main) - CRITICAL - Debug adapter -> Extension: DEBUG_ADAPTER_READY2CONNECT
+2023-05-26 18:46:00,954 - Gdb - INFO - NOTIFY: thread-group-added {'id': 'i1'}
+2023-05-26 18:46:11,118 - Debug Adapter (main) - ERROR - Failed to connect to "remote 127.0.0.1:3333"!
+Traceback (most recent call last):
+  File "/Users/mohamedhossam/.vscode/extensions/espressif.esp-idf-extension-1.6.2/esp_debug_adapter/debug_adapter/command_processor.py", line 52, in __call__
+    on_request(protocol_message)
+  File "/Users/mohamedhossam/.vscode/extensions/espressif.esp-idf-extension-1.6.2/esp_debug_adapter/debug_adapter/command_processor.py", line 75, in on_initialize_request
+    raise e
+  File "/Users/mohamedhossam/.vscode/extensions/espressif.esp-idf-extension-1.6.2/esp_debug_adapter/debug_adapter/command_processor.py", line 70, in on_initialize_request
+    self.da.adapter_init()
+  File "/Users/mohamedhossam/.vscode/extensions/espressif.esp-idf-extension-1.6.2/esp_debug_adapter/debug_adapter/debug_adapter.py", line 329, in adapter_init
+    raise e
+  File "/Users/mohamedhossam/.vscode/extensions/espressif.esp-idf-extension-1.6.2/esp_debug_adapter/debug_adapter/debug_adapter.py", line 325, in adapter_init
+    self.start_gdb()
+  File "/Users/mohamedhossam/.vscode/extensions/espressif.esp-idf-extension-1.6.2/esp_debug_adapter/debug_adapter/debug_adapter.py", line 659, in start_gdb
+    raise e
+  File "/Users/mohamedhossam/.vscode/extensions/espressif.esp-idf-extension-1.6.2/esp_debug_adapter/debug_adapter/debug_adapter.py", line 656, in start_gdb
+    self._gdb.connect()
+  File "/Users/mohamedhossam/.vscode/extensions/espressif.esp-idf-extension-1.6.2/esp_debug_adapter/debug_adapter/debug_backend/debug_backend/gdb.py", line 578, in connect
+    self.target_select(remote_mode, self._remote_target, tmo=tmo)
+  File "/Users/mohamedhossam/.vscode/extensions/espressif.esp-idf-extension-1.6.2/esp_debug_adapter/debug_adapter/debug_backend/debug_backend/gdb.py", line 258, in target_select
+    raise DebuggerError('Failed to connect to "%s %s"!' % (tgt_type, tgt_params))
+debug_adapter.debug_backend.debug_backend.defs.DebuggerError: Failed to connect to "remote 127.0.0.1:3333"!
+2023-05-26 18:46:11,141 - Debug Adapter (main) - CRITICAL - Debug adapter -> Extension: DEBUG_ADAPTER_STOPPED
