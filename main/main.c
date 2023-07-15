@@ -1,369 +1,316 @@
-#include <stdio.h>
+#include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/queue.h"
-#include "driver/gpio.h"
-#include "driver/i2c.h"
-#include "ssd1306.h"
+#include "freertos/event_groups.h"
+#include "esp_system.h"
 #include "esp_log.h"
-#include "queue.h"
-#include "wifi_module.h"
+#include "esp_event.h"
+#include "nvs_flash.h"
+#include "driver/gpio.h"
+
+#include "wifiInit.h"
 #include "timeMgmt.h"
 #include "mqtt.h"
-#include "time.h"
-#include "caps_ota.h"
-#include "platform_api.h"
-#include <stdlib.h>
+#include "mqtt_client.h"
+#include "esp32/rom/rtc.h"
+#include "driver/rtc_io.h"
 
-#define SDA_PIN 21
-#define SCL_PIN 22
-#define INPUT_PIN_1 27
-#define INPUT_PIN_2 5
+#include "counting.h"
+#include "showRoomState.h"
+#include "roomMonitoring.h"
+#include <driver/adc.h>
+#include "esp_pm.h"
 
-// RTC_NOINIT_ATTR uint8_t inMemory;
-nvs_handle_t my_handle;
-volatile uint8_t count = 0;
-volatile uint8_t prediction = 0;
-volatile unsigned int lastDebounceTimeInput1 = 0;
-volatile unsigned int lastDebounceTimeInput2 = 0;
-volatile unsigned int debounceDelay = 50;
-volatile bool currentStateInput1 = false;
-volatile bool previousStateInput1 = false;
-volatile bool currentStateInput2 = false;
-volatile bool previousStateInput2 = false;
+#include "esp_sleep.h"
+#include "esp_wifi.h"
+#include "epaperInterface.h"
+#include "wakeup.h"
 
-xQueueHandle interputQueue1;
-bool flag1 = false;
-bool flag2 = false;
+#ifdef WITH_CALCULATION
+#include "referenceWriting.h"
+#endif
 
-static void IRAM_ATTR gpio_interrupt_handler_Input1(void *args)
+const uint8_t ledPin = 19; // Onboard LED
+
+RTC_NOINIT_ATTR int count = 0;
+int prediction;
+RTC_NOINIT_ATTR event_t events[200];
+RTC_NOINIT_ATTR int eventCount = 0;
+RTC_NOINIT_ATTR uint64_t timeAtStart;
+RTC_NOINIT_ATTR int thisIsTheStart = 0;
+RTC_NOINIT_ATTR uint64_t lastDebounceTimeInput1 = 0;
+RTC_NOINIT_ATTR uint64_t lastDebounceTimeInput2 = 0;
+
+static const char *TAG = "RoomMonitoring";
+TaskHandle_t showRoomStateTask, publishRoomCountTask;
+
+esp_mqtt_client_handle_t mqttClient = NULL;
+
+#ifdef WITH_CALCULATION
+void calculation()
 {
-	int barrierId = 0;
-	currentStateInput1 = gpio_get_level(INPUT_PIN_1);
-	int pinNumber = (int)args;
-	if (currentStateInput1 != previousStateInput1)
-	{
-		lastDebounceTimeInput1 = millis();
-	}
-	if ((millis() - lastDebounceTimeInput1) > debounceDelay)
-	{
-		barrierId = 1;
-		xQueueSendFromISR(interputQueue1, &barrierId, NULL);
-	}
-}
+	// Template matching for every text
+	int writingTemplateWidth = 200;
+	int writingTemplateHeight = 20;
+	int writingFieldWidth = 280;
+	int writingFieldHeight = 32;
+	int minERR = INT_MAX;
+	int index = 0;
+	unsigned char *writing = (uint8_t *)calloc(writingFieldWidth * writingFieldHeight, sizeof(uint8_t));
 
-static void IRAM_ATTR gpio_interrupt_handler_Input2(void *args)
-{
-	int barrierId = 0;
-	int pinNumber = (int)args;
-	currentStateInput2 = gpio_get_level(INPUT_PIN_2);
-	if (currentStateInput2 != previousStateInput2)
+	for (int t = 0; t < 16; t++)
 	{
-		lastDebounceTimeInput2 = millis();
-	}
-	if ((millis() - lastDebounceTimeInput2) > debounceDelay)
-	{
-		barrierId = 2;
-		xQueueSendFromISR(interputQueue1, &barrierId, NULL);
-	}
-}
-
-int64_t get_timestamp(void)
-{
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	return (tv.tv_sec) * 1000LL + (tv.tv_usec / 1000LL);
-}
-
-void showRoomState()
-{
-	ssd1306_clearScreen();
-	ssd1306_setFixedFont(ssd1306xled_font8x16);
-	ssd1306_printFixed(0, 0, "G10", STYLE_NORMAL);
-	char number[33];
-	char prediction_number[33];
-	char clock[64];
-	struct tm timeinfo;
-	time_t now;
-	while (1)
-	{
-		ssd1306_setFixedFont(comic_sans_font24x32_123);
-		sprintf(number, "%d", count);
-		ssd1306_printFixed(0, 30, "  ", STYLE_NORMAL);
-		ssd1306_printFixed(0, 30, number, STYLE_NORMAL);
-		time(&now);
-		localtime_r(&now, &timeinfo);
-		sprintf(clock, "%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
-		ssd1306_setFixedFont(ssd1306xled_font8x16);
-		ssd1306_printFixed(70, 0, clock, STYLE_NORMAL);
-		ssd1306_setFixedFont(comic_sans_font24x32_123);
-		sprintf(prediction_number, "%d", prediction);
-		ssd1306_printFixed(70, 30, "  ", STYLE_NORMAL);
-		ssd1306_printFixed(70, 30, prediction_number, STYLE_NORMAL);
-		vTaskDelay(3000 / portTICK_PERIOD_MS);
-	}
-}
-void getPredictionFromIot()
-{
-	while (1)
-	{
-		esp_err_t err_platform = platform_api_init("http://caps-platform.live:3000/api/users/36/config/device/fetch");
-		if (err_platform == ESP_OK)
+		for (int y = 0; y <= writingFieldHeight - writingTemplateHeight; y++)
 		{
-			ESP_LOGI("PREDICTION_HTTP", "ALL GOOD");
-			platform_api_set_query_string("type", "device");
-			platform_api_set_query_string("deviceId", "86");
-			platform_api_set_query_string("keys", "prediction");
-			platform_api_set_token(JWT_TOKEN);
-			ESP_ERROR_CHECK(platform_api_perform_request());
-			char *variable;
-			ESP_ERROR_CHECK(platform_api_retrieve_val("prediction", STRING, true, NULL, (void **)&variable));
-			ESP_ERROR_CHECK(platform_api_cleanup());
-			ESP_LOGI("Prediction Value", "%s", variable);
-			prediction = atoi(variable) < 0 ? 0 : atoi(variable);
-			
-		}
-		else
-		{
-			ESP_LOGI("PREDICTION_HTTP", "ERROR");
-		}
-
-		vTaskDelay(50000 / portTICK_PERIOD_MS);
-	}
-}
-void setValueNVS()
-{
-	// Write
-	nvs_set_i32(my_handle, "count", count);
-
-	// Commit written value.
-	// After setting any values, nvs_commit() must be called to ensure changes are written
-	// to flash storage. Implementations may write to storage at other times,
-	// but this is not guaranteed.
-	printf("Committing updates in NVS ... ");
-	nvs_commit(my_handle);
-}
-void setValueNVSWithValue(uint8_t value)
-{
-	// Write
-	nvs_set_i32(my_handle, "count", value);
-
-	// Commit written value.
-	// After setting any values, nvs_commit() must be called to ensure changes are written
-	// to flash storage. Implementations may write to storage at other times,
-	// but this is not guaranteed.
-	printf("Committing zeroing updates in NVS ... ");
-	nvs_commit(my_handle);
-}
-void bufferEvents()
-{
-	int barrierId = 0;
-	while (1)
-	{
-		if (xQueueReceive(interputQueue1, &barrierId, 0))
-		{
-			ESP_LOGI("TESTING", "Inside first receive %d", barrierId);
-			if (barrierId == 1)
+			for (int x = 0; x <= writingFieldWidth - writingTemplateWidth; x++)
 			{
-				if (xQueueReceive(interputQueue1, &barrierId, 500))
+				int ERR = 0;
+				for (int i = 0; i < writingTemplateHeight; i++)
 				{
-					ESP_LOGI("TESTING", "Inside second receive %d", barrierId);
-					if (barrierId == 2)
-						count++;
+					for (int j = 0; j < writingTemplateWidth; j++)
+					{
+						int searchPix = writing[y * writingFieldWidth + i * writingFieldWidth + j + x];
+						int templatePix = references[t][i * writingTemplateWidth + j];
+						ERR += abs(searchPix - templatePix);
+					}
+				}
+
+				if (minERR > ERR)
+				{
+					minERR = ERR;
+					index = t;
 				}
 			}
-			else if (barrierId == 2)
+		}
+	}
+	ESP_LOGI(TAG, "Best match: %d", index);
+}
+#endif
+
+#ifdef WITH_DISPLAY
+void epaperDemo()
+{
+	epaperClear();
+	epaperShow(40, 40, "Hallo", 0);
+	epaperShow(40, 60, "Hallo", 1);
+	epaperShow(40, 80, "Hallo", 2);
+	epaperShow(40, 100, "Hallo", 3);
+	epaperShow(40, 120, "Hallo", 4);
+	epaperUpdate();
+}
+#endif
+
+void app_main(void)
+{
+	esp_log_level_set("*", ESP_LOG_ERROR);
+	esp_log_level_set("*", ESP_LOG_INFO);
+	// esp_log_level_set("MQTT_CLIENT", ESP_LOG_VERBOSE);
+	// esp_log_level_set("wifi", ESP_LOG_VERBOSE);
+
+	if (rtc_get_reset_reason(0) == DEEPSLEEP_RESET)
+	{
+		printf("Wake up from deep sleep\n");
+		// ESP_LOGI(TAG, "count %d",count);
+		printf("count %d\n", count);
+		printf("Event Count: %d \n", eventCount);
+		printf("TimeStamp of the last event: %llu \n", events[eventCount - 1].timeStamp);
+		int counter = 0;
+		while (counter < eventCount)
+		{
+			if (events[counter].outerBarrier == 1)
 			{
-				ESP_LOGI("TESTING", "Inside third receive %d", barrierId);
-				if (xQueueReceive(interputQueue1, &barrierId, 500))
+				counter++;
+				if (counter == eventCount)
+					break;
+				if (events[counter].outerBarrier == 0 && ((events[counter].timeStamp - events[counter - 1].timeStamp) < 500000))
 				{
-					ESP_LOGI("TESTING", "Inside fourth receive %d", barrierId);
-					if (barrierId == 1)
+					count++;
+				}
+			}
+			else
+			{
+				if (events[counter].outerBarrier == 0)
+				{
+					if (count < CAPACITY_OF_ROOM)
+						counter++;
+					if (counter == eventCount)
+						break;
+					if (events[counter].outerBarrier == 1 && ((events[counter].timeStamp - events[counter - 1].timeStamp) < 500000))
 					{
 						if (count > 0)
 							count--;
 					}
 				}
 			}
-			// inMemory = count;
-			setValueNVS();
 		}
-		vTaskDelay(1000 / portTICK_PERIOD_MS);
-	}
-}
-
-void publisherTask()
-{
-	while (1)
-	{
-		char msg[256];
-		char msg_log[1064];
-		int qos_test = 1;
-		sprintf(msg, "{\"sensors\":[{\"name\": \"%s\", \"values\": [{\"timestamp\": %lld, \"count\": %d }]}]}", "group10 sensor", get_timestamp(), count);
-		ESP_LOGI("MQTT_SEND", "Topic %s: %s\n", TOPIC, msg);
-		int msg_id = esp_mqtt_client_publish(mqttClient, TOPIC, msg, strlen(msg), qos_test, 0);
-		if (msg_id == -1)
-		{
-			ESP_LOGE(TAG, "msg_id returned by publish is -1!\n");
-		}
-		sprintf(msg_log, "{\"sensors\":[{\"name\": \"%s\", \"values\": [{\"timestamp\": %lld, \"logMessage\": \"%s\" }]}]}", "Logging", get_timestamp(), "I am still alive!");
-		ESP_LOGI("MQTT_SEND", "Topic %s: %s\n", TOPIC, msg_log);
-		msg_id = esp_mqtt_client_publish(mqttClient, TOPIC, msg_log, strlen(msg_log), qos_test, 0);
-		if (msg_id == -1)
-		{
-			ESP_LOGE(TAG, "msg_id returned by publish is -1!\n");
-		}
-		vTaskDelay(25000 / portTICK_PERIOD_MS);
-	}
-}
-
-void update_ota()
-{
-	while (1)
-	{
-		vTaskDelay(30000 / portTICK_PERIOD_MS);
-		if (ota_update() == ESP_OK)
-		{
-			esp_restart();
-		}
-		vTaskDelay(30000 / portTICK_PERIOD_MS);
-	}
-}
-
-void checkTimeAndSetNvsVariable()
-{
-	struct tm timeinfo;
-	time_t now;
-
-	time(&now);
-	localtime_r(&now, &timeinfo);
-	if (timeinfo.tm_hour == 0 && timeinfo.tm_min == 0 && count > 0)
-	{
-		setValueNVSWithValue(0);
-	}
-}
-
-void app_main()
-{
-	esp_err_t err = nvs_flash_init();
-	if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND)
-	{
-		// NVS partition was truncated and needs to be erased
-		// Retry nvs_flash_init
-		ESP_ERROR_CHECK(nvs_flash_erase());
-		err = nvs_flash_init();
-	}
-	ESP_ERROR_CHECK(err);
-	err = nvs_open("storage", NVS_READWRITE, &my_handle);
-	if (err != ESP_OK)
-	{
-		printf("Error (%s) opening NVS handle!\n", esp_err_to_name(err));
+		eventCount = 0;
+		timeAtStart = 0;
+		thisIsTheStart = 0;
+		lastDebounceTimeInput1 = 0;
+		lastDebounceTimeInput2 = 0;
 	}
 	else
 	{
-		printf("Done\n");
-		// Read
-		printf("counter from NVS ... ");
-		err = nvs_get_i32(my_handle, "count", &count);
-		switch (err)
-		{
-		case ESP_OK:
-			printf("Done\n");
-			printf("counter = %" PRIu32 "\n", count);
-			break;
-		case ESP_ERR_NVS_NOT_FOUND:
-			printf("The value is not initialized yet!\n");
-			break;
-		default:
-			printf("Error (%s) reading!\n", esp_err_to_name(err));
-		}
-
-		// Close
-		// nvs_close(my_handle);
+		printf("Not a deep sleep wake up\n");
+		count = 0;
+		inFlag = false;
+		outFlag = false;
+		timestampOut = 0;
+		timestampIn = 0;
+		eventCount = 0;
+		timeAtStart = 0;
+		thisIsTheStart = 0;
+		// ESP_LOGI(TAG, "Init: count %d",count);
+		printf("Init: count %d\n", count);
 	}
-	i2c_config_t i2c_config = {
-		.mode = I2C_MODE_MASTER,
-		.sda_io_num = SDA_PIN,
-		.scl_io_num = SCL_PIN,
-		.sda_pullup_en = GPIO_PULLUP_ENABLE,
-		.scl_pullup_en = GPIO_PULLUP_ENABLE,
-		.master.clk_speed = 1000000};
-	i2c_param_config(I2C_NUM_0, &i2c_config);
-	i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, 0, 0, 0);
 
-	gpio_pad_select_gpio(INPUT_PIN_1);
-	gpio_set_direction(INPUT_PIN_1, GPIO_MODE_INPUT);
-	gpio_pulldown_en(INPUT_PIN_1);
-	gpio_pullup_dis(INPUT_PIN_1);
-	gpio_set_intr_type(INPUT_PIN_1, GPIO_INTR_NEGEDGE);
-	gpio_pad_select_gpio(INPUT_PIN_2);
-	gpio_set_direction(INPUT_PIN_2, GPIO_MODE_INPUT);
-	gpio_pulldown_en(INPUT_PIN_2);
-	gpio_pullup_dis(INPUT_PIN_2);
-	gpio_set_intr_type(INPUT_PIN_2, GPIO_INTR_NEGEDGE);
-	ssd1306_init();
-	ssd1306_displayOn();
-	ssd1306_clearScreen();
-	ssd1306_setFixedFont(ssd1306xled_font8x16);
-	ssd1306_printFixed(0, 0, "G10", STYLE_NORMAL);
-	ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
-	ssd1306_setFixedFont(ssd1306xled_font8x16);
-	ssd1306_printFixed(20, 20, "WIFI INIT...", STYLE_NORMAL);
-	wifi_init_sta();
-	ssd1306_printFixed(20, 20, "SNTP INIT...", STYLE_NORMAL);
-	initSNTP();
-	initMQTT();
-	interputQueue1 = xQueueCreate(2000, sizeof(int));
-	xTaskCreate(showRoomState,
-				"showRoomState",
-				4096,
-				NULL,
-				5,
-				NULL);
-	xTaskCreate(publisherTask,
-				"publisherTask",
-				4096,
-				count,
-				5,
-				NULL);
-	xTaskCreatePinnedToCore(bufferEvents,
-							"bufferEvents",
-							4096,
-							NULL,
-							2,
-							NULL,
-							1);
-
-	xTaskCreatePinnedToCore(update_ota,
-							"otaUpdate",
-							4096,
-							NULL,
-							2,
-							NULL,
-							1);
-	xTaskCreatePinnedToCore(getPredictionFromIot,
-							"getPredictionFromIot",
-							4096,
-							NULL,
-							3,
-							NULL,
-							1);
-	TimerHandle_t timer = xTimerCreate("time_timer", pdMS_TO_TICKS(10000), pdTRUE, NULL, checkTimeAndSetNvsVariable);
-	if (timer == NULL) {
-        printf("Error creating timer\n");
-        return;
-    }
-
-    // Start the timer
-    if (xTimerStart(timer, 0) != pdPASS) {
-        printf("Error starting timer\n");
-        return;
-    }
-	gpio_install_isr_service(0);
-	gpio_isr_handler_add(INPUT_PIN_1, gpio_interrupt_handler_Input1, (void *)INPUT_PIN_1);
-	gpio_isr_handler_add(INPUT_PIN_2, gpio_interrupt_handler_Input2, (void *)INPUT_PIN_2);
-	while (1)
+	// Initialize NVS
+	esp_err_t ret = nvs_flash_init();
+	if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
 	{
-		vTaskDelay(1000 / portTICK_PERIOD_MS);
+		ESP_ERROR_CHECK(nvs_flash_erase());
+		ret = nvs_flash_init();
 	}
+	ESP_ERROR_CHECK(ret);
+
+#ifdef DEEP_SLEEP
+#ifndef WAKE_STUP
+	if (rtc_get_reset_reason(0) == DEEPSLEEP_RESET)
+	{
+		uint64_t pinMask = esp_sleep_get_ext1_wakeup_status();
+		printf("Status: %llx\n", pinMask);
+		if (pinMask & (uint64_t)1 << interruptPinIn)
+		{
+			ESP_LOGI(TAG, "Woken up by inner barrier");
+			inHandler();
+		}
+		if (pinMask & (uint64_t)1 << interruptPinOut)
+		{
+			ESP_LOGI(TAG, "Woken up by outer barrier");
+			outHandler();
+		}
+	}
+#endif
+#endif
+
+#ifdef WITH_DISPLAY
+	// Power up ePaper display via IO pin
+	ESP_ERROR_CHECK(gpio_set_direction(DISPLAY_POWER, GPIO_MODE_OUTPUT));
+	ESP_ERROR_CHECK(gpio_set_level(DISPLAY_POWER, 1));
+
+	epaperInit();
+	// epaperDemo();
+	// vTaskDelay(2000 / portTICK_RATE_MS);
+#endif
+
+#ifndef DEEP_SLEEP
+	ESP_ERROR_CHECK(gpio_install_isr_service(ESP_INTR_FLAG_IRAM));
+	ESP_ERROR_CHECK(gpio_set_direction(interruptPinOut, GPIO_MODE_INPUT));
+	ESP_ERROR_CHECK(gpio_pulldown_en(interruptPinOut));
+	ESP_ERROR_CHECK(gpio_set_intr_type(interruptPinOut, GPIO_INTR_POSEDGE));
+	ESP_ERROR_CHECK(gpio_isr_handler_add(interruptPinOut, outISR, NULL));
+
+	ESP_ERROR_CHECK(gpio_set_direction(interruptPinIn, GPIO_MODE_INPUT));
+	ESP_ERROR_CHECK(gpio_pulldown_en(interruptPinIn));
+	ESP_ERROR_CHECK(gpio_set_intr_type(interruptPinIn, GPIO_INTR_POSEDGE));
+	ESP_ERROR_CHECK(gpio_isr_handler_add(interruptPinIn, inISR, NULL));
+#endif
+
+	// configPM();
+
+	ESP_LOGI(TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
+	ESP_LOGI(TAG, "[APP] IDF version: %s", esp_get_idf_version());
+
+#ifdef WITH_NETWORK
+	// Creates a station network interface object
+	ESP_LOGI(TAG, "Initializing wifi");
+	ESP_ERROR_CHECK(esp_event_loop_create_default());
+	wifi_init_sta();
+	initialize_sntp();
+#endif
+
+#ifdef WITH_CALCULATION
+	ESP_LOGI(TAG, "Starting calculation");
+	// toggleEnergyMeasurement(); //start measurement
+	calculation();
+	// toggleEnergyMeasurement();     //stop measurement
+	ESP_LOGI(TAG, "calculation done");
+#endif
+
+#ifdef WITH_DISPLAY
+	xTaskCreatePinnedToCore(
+		showRoomState,		/* Task function. */
+		"showRoomState",	/* name of task. */
+		2000,				/* Stack size of task */
+		NULL,				/* parameter of the task */
+		1,					/* priority of the task */
+		&showRoomStateTask, /* Task handle to keep track of created task */
+		0);					/* pin task to core 0 */
+#endif
+
+#ifdef WITH_PUBLICATION
+	xTaskCreatePinnedToCore(
+		publishRoomCount,	   /* Task function. */
+		"publishRoomCount",	   /* name of task. */
+		8000,				   /* Stack size of task */
+		NULL,				   /* parameter of the task */
+		1,					   /* priority of the task */
+		&publishRoomCountTask, /* Task handle to keep track of created task */
+		0);					   /* pin task to core 0 */
+#endif
+
+#ifdef WAKEUP_STUB
+	// Set the wake stub function
+	esp_set_deep_sleep_wake_stub(&wake_stub);
+#endif
+
+#ifdef DEEP_SLEEP
+	ESP_ERROR_CHECK(gpio_set_direction(interruptPinOut, GPIO_MODE_INPUT));
+	ESP_ERROR_CHECK(gpio_set_direction(interruptPinIn, GPIO_MODE_INPUT));
+
+	const uint64_t ext_wakeup_pin_1_mask = 1ULL << interruptPinOut;
+	const uint64_t ext_wakeup_pin_2_mask = 1ULL << interruptPinIn;
+
+	printf("Enabling EXT1 wakeup on pins GPIO%d, GPIO%d\n", interruptPinOut, interruptPinIn);
+	esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask | ext_wakeup_pin_2_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+
+	/* If there are no external pull-up/downs, tie wakeup pins to inactive level with internal pull-up/downs via RTC IO
+	 * during deepsleep. However, RTC IO relies on the RTC_PERIPH power domain. Keeping this power domain on will
+	 * increase some power comsumption. */
+	esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
+	rtc_gpio_pullup_dis(interruptPinIn);  // disable
+	rtc_gpio_pulldown_en(interruptPinIn); // enable
+	rtc_gpio_pullup_dis(interruptPinOut);
+	rtc_gpio_pulldown_en(interruptPinOut);
+
+	vTaskDelay(5000 / portTICK_RATE_MS);
+	printf("count: %d\n", count);
+	printf("Going to sleep\n");
+#ifdef WITH_DISPLAY
+	epaperSleep();
+	ESP_ERROR_CHECK(gpio_set_level(DISPLAY_POWER, 0));
+#endif
+	esp_deep_sleep_start();
+#endif
+
+#ifdef LIGHT_SLEEP
+	esp_sleep_enable_gpio_wakeup();
+	// ESP_ERROR_CHECK(esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON));
+
+	gpio_wakeup_enable(interruptPinIn, GPIO_INTR_HIGH_LEVEL);
+	gpio_wakeup_enable(interruptPinOut, GPIO_INTR_HIGH_LEVEL);
+	// ESP_ERROR_CHECK(gpio_pulldown_en(interruptPinIn));
+	// ESP_ERROR_CHECK(gpio_pulldown_en(interruptPinOut));
+	// gpio_wakeup_enable(interruptPinIn, GPIO_INTR_HIGH_LEVEL);
+	// gpio_wakeup_enable(interruptPinOut, GPIO_INTR_HIGH_LEVEL);
+
+	while (true)
+	{
+		printf("count: %d\n", count);
+		printf("Going to light sleep\n");
+		vTaskDelay(2000 / portTICK_RATE_MS);
+		esp_light_sleep_start();
+		vTaskDelay(10000 / portTICK_RATE_MS);
+	}
+#endif
 }

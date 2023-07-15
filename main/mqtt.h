@@ -1,19 +1,10 @@
 #ifndef MQTT_H
 #define MQTT_H
 
-#include "mqtt_client.h"
-
-#define USER_NAME "group10"
-#define USERID 36   // to be found in the platform
-#define DEVICEID 86 // to be found in the platform
-#define SENSOR_NAME "group10 sensor"
-#define TOPIC "36/86/data" // userID_deviceID
-#define JWT_TOKEN "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE2ODQ1MDM5ODMsImlzcyI6ImlvdHBsYXRmb3JtIiwic3ViIjoiMzYvODYifQ.UspMi_MuAj7LIdNnflk4F3LTZXAark2-0qbJAsplaidWTstABjiXFgtOiKbxHMsxXD2BfQ1eevl6KqBbsgFgD3Y_-2tRxrTh3kDGdPibVCoabgu947Z006tNBzUDAN4jSnexQ-Q6rfJM2jGfyOs2yJbvyr7SP4_FVMQTx2MA6twV0KITvfgHgq76qV8jBsDWKTIgBtv1wNZtj4lbN2o8hND-IHo9KOntw35nqU8JmjwqF0VZ_bQZrpwJmSIAJTACldN3KKGRrXpIx_0gperDykNn7Ka9__ci3odxsFk4GjFhWImpr4o82BzWQz4OajfH9_rPwHOJpLIjLFyExpsZhbGgpI418bqmVeXe08CvRccCx44acn21VNe4aIsiPqIKh5A_msErAm_x7A11QvWhw8PA1R_Sk7gyKSjfBUQesnXgSW41jk8cFz4WtVUz9hSimjqPjJ26phQhCgr1rJymxhP9n5yduc7MUpRp3uqp6eWRk2reLcneJP5gfytuU2SkQSk1_eB4p3YLa1JZqM5IXuvQi-ErJY29v6ERXGbIKTu0zBctXf1wuEHzBdazxzXX6_USmmBzWBYPhUJ5pITJ-rWHaKW51mTNpvjEBLT9XHu4KodgAaSl0v9nIT2NKNhMja8Wtpo5SXxn1xynktwbbTjnMAw5PquHKpLw1-LYE0U"
-#define MQTT_SERVER "mqtt.caps-platform.live"
-
-void initMQTT(void);
-
-extern esp_mqtt_client_handle_t mqttClient;
-extern EventGroupHandle_t mqtt_event_group;
+void mqttInit(void);
+void mqttIotInit(void);
+void publishRoomCount(void * pvParameters);
+void publishCount(void);
+void monitorMQTT( void * pvParameters );
 
 #endif
